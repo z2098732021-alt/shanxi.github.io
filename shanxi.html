@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>山西古建影像之旅 | 8天7晚自驾规划</title>
+    <style>
+        /* --- 🎨 视觉变量 --- */
+        :root {
+            --bg-deep: #0f0f11;
+            --bg-card: rgba(30, 30, 35, 0.6);
+            --bg-card-hover: rgba(40, 40, 45, 0.8);
+            --text-primary: #f0f0f0;
+            --text-secondary: #a0a0a0;
+            --accent-gold: #c5a059; /* 沉稳金 */
+            --accent-glow: rgba(197, 160, 89, 0.25);
+            --border-light: rgba(255, 255, 255, 0.08);
+            --font-main: "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* --- 基础重置 --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, var(--bg-deep) 60%);
+        }
+
+        /* --- 动画 --- */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- 布局容器 --- */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* --- Header --- */
+        header {
+            height: 50vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            margin-bottom: 40px;
+        }
+
+        header::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 100px;
+            background: linear-gradient(to top, var(--bg-deep), transparent);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: #fff;
+            margin-bottom: 12px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+            display: flex;
+            gap: 20px;
+            animation: fadeInUp 0.8s ease 0.2s backwards;
+        }
+        .subtitle span { position: relative; }
+        .subtitle span:not(:last-child)::after {
+            content: '/'; position: absolute; right: -12px; color: #444;
+        }
+
+        /* --- 核心数据 --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 50px;
+            animation: fadeInUp 0.8s ease 0.3s backwards;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-val { display: block; font-size: 1.4rem; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px; }
+        .stat-key { font-size: 0.8rem; color: var(--text-secondary); }
+
+        /* --- 模块标题 --- */
+        .section-title {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-left: 5px;
+        }
+        .section-title::before {
+            content: ''; width: 4px; height: 18px; background: var(--accent-gold); border-radius: 2px;
+        }
+
+        /* --- 财务预算 --- */
+        .budget-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 60px;
+        }
+
+        .budget-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .budget-label { font-size: 0.9rem; color: var(--text-secondary); }
+        .budget-num { font-size: 1.1rem; color: #fff; font-weight: 500; }
+        
+        .budget-total {
+            grid-column: 1 / -1;
+            background: rgba(197, 160, 89, 0.1);
+            border-color: rgba(197, 160, 89, 0.3);
+        }
+        .budget-total .budget-num { color: var(--accent-gold); }
+
+        /* --- 时间轴路书 --- */
+        .timeline {
+            position: relative;
+            padding-left: 24px;
+            margin-bottom: 60px;
+        }
+
+        .timeline::before {
+            content: ''; position: absolute; left: 6px; top: 10px; bottom: 30px;
+            width: 1px; background: var(--border-light);
+        }
+
+        .day-card {
+            position: relative;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            opacity: 0; /* JS Fade in */
+            transform: translateY(10px);
+            transition: all 0.5s ease;
+        }
+        
+        .day-card.visible { opacity: 1; transform: translateY(0); }
+
+        .time-node {
+            position: absolute; left: -24px; top: 6px;
+            width: 12px; height: 12px;
+            background: var(--bg-deep);
+            border: 2px solid var(--text-secondary);
+            border-radius: 50%;
+            z-index: 2;
+            transition: border-color 0.3s;
+        }
+
+        .day-card:hover .time-node { border-color: var(--accent-gold); background: var(--accent-gold); }
+
+        .card-inner {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 24px;
+            transition: background 0.3s, transform 0.3s;
+        }
+
+        .card-inner:hover {
+            background: var(--bg-card-hover);
+            transform: translateX(5px);
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 12px;
+        }
+
+        .day-title { font-size: 1.1rem; font-weight: 600; color: #fff; }
+        .day-date { font-size: 0.85rem; color: var(--accent-gold); font-family: monospace; }
+
+        .route-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .arrow { font-size: 0.7rem; color: #555; }
+
+        .desc {
+            font-size: 0.95rem;
+            color: #d0d0d0;
+            margin-bottom: 15px;
+        }
+
+        .tag-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .tag {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+            border: 1px solid transparent;
+        }
+        .tag.highlight { color: var(--accent-gold); border-color: rgba(197, 160, 89, 0.2); background: rgba(197, 160, 89, 0.05); }
+
+        /* --- 摄影指南 --- */
+        .gear-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .gear-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            padding: 24px;
+            border-radius: 12px;
+        }
+
+        .gear-name { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;}
+        .gear-detail { font-size: 0.9rem; color: var(--text-secondary); list-style: none; }
+        .gear-detail li { margin-bottom: 6px; padding-left: 12px; position: relative; }
+        .gear-detail li::before { content: '·'; position: absolute; left: 0; color: var(--accent-gold); }
+
+        /* --- Footer --- */
+        footer {
+            text-align: center;
+            padding: 60px 0;
+            color: #555;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>山西古建影像之旅</h1>
+        <div class="subtitle">
+            <span>3人自驾</span>
+            <span>8天7晚</span>
+            <span>深度摄影</span>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-val">¥2,800</span>
+                <span class="stat-key">落地人均预算</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val">1,500km</span>
+                <span class="stat-key">自驾总里程</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val">7处</span>
+                <span class="stat-key">核心国保古建</span>
+            </div>
+        </div>
+
+        <div class="section-title">费用规划 (3人公费池)</div>
+        <div class="budget-container">
+            <div class="budget-item">
+                <span class="budget-label">车辆与交通 (租车+油路)</span>
+                <span class="budget-num">¥3,200</span>
+            </div>
+            <div class="budget-item">
+                <span class="budget-label">住宿 (7晚混住)</span>
+                <span class="budget-num">¥2,300</span>
+            </div>
+            <div class="budget-item">
+                <span class="budget-label">餐饮 (8天)</span>
+                <span class="budget-num">¥2,100</span>
+            </div>
+            <div class="budget-item">
+                <span class="budget-label">门票与玩乐</span>
+                <span class="budget-num">¥900</span>
+            </div>
+            <div class="budget-item budget-total">
+                <span class="budget-label" style="color:#ddd">总计公费预算</span>
+                <span class="budget-num">¥8,500</span>
+            </div>
+        </div>
+
+        <div class="section-title">每日行程详情</div>
+        <div class="timeline">
+            
+            <div class="day-card">
+                <div class="time-node"></div>
+                <div class="card-inner">
+                    <div class="day-header">
+                        <span class="day-title">Day 1：北上大同</span>
+                        <span class="day-date">1.17 (六)</span>
+                    </div>
+                    <div class="route-info">
+                        太原机场 <span class="arrow">➜</span> 提车 <span class="arrow">➜</span> 大同市区 (3.5h)
+                    </div>
+                    <p class="desc">落地太原，办理租车手续，全程高速直奔大同。入住酒店后休息，适应当地气候。</p>
+                    <div class="tag-row">
+                        <span class="tag">宿：大同市区 (全季/云冈建国)</span>
+                        <span class="tag">食：火锅/烧麦</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div class="time-node"></div>
+                <div class="card-inner">
+                    <div class="day-header">
+                        <span class="day-title">Day 2：石窟与土林</span>
+                        <span class="day-date">1.18 (日)</span>
+                    </div>
+                    <div class="route-info">
+                        云冈石窟 <span class="arrow">➜</span> 大同土林 <span class="arrow">➜</span> 浑源县
+                    </div>
+                    <p class="desc">上午游览云冈石窟，拍摄第20窟大佛特写。下午前往土林拍摄自然地貌，建议停留至日落时分。</p>
+                    <div class="tag-row">
+                        <span class="tag">宿：浑源县 (恒山国际)</span>
+                        <span class="tag highlight">重点：土林日落摄影</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div class="time-node"></div>
+                <div class="card-inner">
+                    <div class="day-header">
+                        <span class="day-title">Day 3：古建与雪山</span>
+                        <span class="day-date">1.19 (一)</span>
+                    </div>
+                    <div class="route-info">
+                        悬空寺 <span class="arrow">➜</span> 应县木塔 <span class="arrow">➜</span> 五台山路 <span class="arrow">➜</span> 佛光寺
+                    </div>
+                    <p class="desc">早起拍摄顺光下的悬空寺（不登临）。前往应县拍摄木塔。午后经国道穿行五台山北麓观赏雪山景色，抵达佛光寺参观东大殿。</p>
+                    <div class="tag-row">
+                        <span class="tag">宿：太原南站 (中转)</span>
+                        <span class="tag highlight">重点：雪山公路驾驶</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div class="time-node"></div>
+                <div class="card-inner">
+                    <div class="day-header">
+                        <span class="day-title">Day 4：彩塑艺术</span>
+                        <span class="day-date">1.20 (二)</span>
+                    </div>
+                    <div class="route-info">
+                        太原 <span class="arrow">➜</span> 双林寺(顺路) <span class="arrow">➜</span> 小西天 <span class="arrow">➜</span> 临汾
+                    </div>
+                    <p class="desc">前往隰县小西天，大雄宝殿内悬塑精美。建议聘请讲解。下午光线适宜拍摄室内细节。</p>
+                    <div class="tag-row">
+                        <span class="tag">宿：临汾市区</span>
+                        <span class="tag highlight">技巧：ZV-E1暗光拍摄</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div class="time-node"></div>
+                <div class="card-inner">
+                    <div class="day-header">
+                        <span class="day-title">Day 5：琉璃塔</span>
+                        <span class="day-date">1.21 (三)</span>
+                    </div>
+                    <div class="route-info">
+                        广胜寺 <span class="arrow">➜</span> 晋城市区
+                    </div>
+                    <p class="desc">上午参观广胜寺飞虹塔（琉璃工艺）。下午全程高速南下晋城，行程较轻松。</p>
+                    <div class="tag-row">
+                        <span class="tag">宿：晋城市区</span>
+                        <span class="tag">食：晋城烧烤</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div class="time-node"></div>
+                <div class="card-inner">
+                    <div class="day-header">
+                        <span class="day-title">Day 6：星宿与古树</span>
+                        <span class="day-date">1.22 (四)</span>
+                    </div>
+                    <div class="route-info">
+                        玉皇庙 <span class="arrow">➜</span> 青莲寺 <span class="arrow">➜</span> 晋城市区
+                    </div>
+                    <p class="desc">上午前往玉皇庙观看二十八星宿彩塑。下午游览青莲寺，拍摄宋代彩塑及古树远山。</p>
+                    <div class="tag-row">
+                        <span class="tag">宿：晋城市区</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div class="time-node"></div>
+                <div class="card-inner">
+                    <div class="day-header">
+                        <span class="day-title">Day 7：穿越太行</span>
+                        <span class="day-date">1.23 (五)</span>
+                    </div>
+                    <div class="route-info">
+                        晋城 <span class="arrow">➜</span> 二广高速 <span class="arrow">➜</span> 太原
+                    </div>
+                    <p class="desc">沿二广高速穿行太行山脉返回太原，沿途桥隧相连，景观壮丽。晚上在太原聚餐。</p>
+                    <div class="tag-row">
+                        <span class="tag">宿：太原市区 (柳巷)</span>
+                        <span class="tag">食：老太原菜馆</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <div class="time-node"></div>
+                <div class="card-inner">
+                    <div class="day-header">
+                        <span class="day-title">Day 8：晋祠与返程</span>
+                        <span class="day-date">1.24 (六)</span>
+                    </div>
+                    <div class="route-info">
+                        晋祠园林 <span class="arrow">➜</span> 机场还车 <span class="arrow">➜</span> 19:00起飞
+                    </div>
+                    <p class="desc">游览晋祠，欣赏难老泉与古树。下午加满油后前往机场还车。</p>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="section-title">影像创作建议</div>
+        <div class="gear-grid">
+            <div class="gear-item">
+                <div class="gear-name">⚫ Sony ZV-E1 (主力画质)</div>
+                <ul class="gear-detail">
+                    <li><strong>场景：</strong>小西天、玉皇庙、佛光寺室内。</li>
+                    <li><strong>建议：</strong>光圈全开，使用高ISO，还原现场金色质感。</li>
+                    <li><strong>注意：</strong>进出室内请包裹相机，防止镜头起雾。</li>
+                </ul>
+            </div>
+            <div class="gear-item">
+                <div class="gear-name">🎥 Insta360 + 长杆</div>
+                <ul class="gear-detail">
+                    <li><strong>场景：</strong>土林穿梭、塔下合影、雪山公路。</li>
+                    <li><strong>技巧：</strong>塔下竖杆拍摄高视角；土林内模拟低空飞行。</li>
+                    <li><strong>技巧：</strong>五台山路段记录自驾行进画面。</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>祝旅途愉快，一路平安。</p>
+        <p style="margin-top: 10px; opacity: 0.4;">2026.01 山西</p>
+    </footer>
+
+    <script>
+        // 简单的卡片浮现动画
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.day-card').forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>
