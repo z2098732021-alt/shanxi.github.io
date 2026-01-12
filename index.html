@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Shanxi Pro Slides</title>
+    <style>
+        /* --- 🎨 Design System --- */
+        :root {
+            --bg-body: #000000;
+            --bg-card: #1c1c1e;
+            --text-primary: #ffffff;
+            --text-secondary: #86868b;
+            --accent-gold: #d4af37;
+            --accent-blue: #0a84ff;
+            --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            font-family: -apple-system, "SF Pro Text", "PingFang SC", sans-serif;
+            overflow: hidden; /* 禁止页面级滚动，全靠容器 */
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- 🎞️ Slider Container --- */
+        .slider {
+            display: flex;
+            overflow-x: scroll;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            height: 100%;
+            width: 100%;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .slider::-webkit-scrollbar { display: none; }
+
+        /* --- 📱 Single Slide --- */
+        .slide {
+            flex: 0 0 100vw;
+            height: 100%;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            position: relative;
+            padding: calc(60px + var(--safe-top)) 20px calc(90px + var(--safe-bottom)); /* 底部留足空间 */
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* 允许单页内容过长时垂直滚动 */
+            scroll-behavior: smooth;
+        }
+
+        .slide::-webkit-scrollbar { width: 4px; }
+        .slide::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+        .slide::before {
+            content: ''; position: absolute; inset: 0; z-index: -1;
+            background: radial-gradient(circle at 80% 20%, rgba(212, 175, 55, 0.08), transparent 40%);
+            opacity: 0.6; pointer-events: none;
+        }
+
+        /* --- 🎭 Animation Base --- */
+        .anim-item {
+            opacity: 0; transform: translateY(30px) scale(0.95);
+            transition: opacity 0.8s var(--ease-spring), transform 0.8s var(--ease-spring);
+        }
+        .slide.active .anim-item { opacity: 1; transform: translateY(0) scale(1); }
+        .delay-1 { transition-delay: 0.1s; }
+        .delay-2 { transition-delay: 0.2s; }
+        .delay-3 { transition-delay: 0.3s; }
+
+        /* --- 🧭 Components --- */
+        .progress-bar {
+            position: fixed; top: calc(15px + var(--safe-top)); left: 20px; right: 20px;
+            height: 2px; background: rgba(255,255,255,0.1); z-index: 100;
+            border-radius: 2px; overflow: hidden; pointer-events: none;
+        }
+        .progress-fill { height: 100%; background: var(--accent-gold); width: 0%; transition: width 0.5s var(--ease-smooth); }
+
+        /* Navigation Arrows (PC) */
+        @media (min-width: 1024px) {
+            .nav-arrow {
+                position: fixed; top: 50%; transform: translateY(-50%);
+                width: 40px; height: 40px; border-radius: 50%;
+                background: rgba(255,255,255,0.1); color: #fff;
+                display: flex; justify-content: center; align-items: center;
+                cursor: pointer; z-index: 50; transition: all 0.3s;
+                font-size: 18px; backdrop-filter: blur(10px);
+            }
+            .nav-arrow:hover { background: rgba(255,255,255,0.2); }
+            .nav-prev { left: 20px; }
+            .nav-next { right: 20px; }
+        }
+        @media (max-width: 1023px) { .nav-arrow { display: none; } }
+
+        /* Headers */
+        .header-group { margin-bottom: 24px; flex-shrink: 0; }
+        .day-label { font-size: 12px; font-weight: 700; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; display: block; }
+        .main-title { font-size: 32px; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; color: #fff; margin-bottom: 6px; }
+        .sub-title { font-size: 15px; color: var(--text-secondary); font-weight: 400; }
+
+        /* Timeline Box */
+        .timeline-box {
+            background: rgba(28, 28, 30, 0.6);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px; padding: 20px;
+            backdrop-filter: blur(20px); margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        .event-row { display: flex; gap: 14px; margin-bottom: 24px; position: relative; }
+        .event-row:last-child { margin-bottom: 0; }
+        .event-row:not(:last-child)::after {
+            content: ''; position: absolute; left: 5px; top: 18px; bottom: -24px;
+            width: 1px; background: rgba(255,255,255,0.1);
+        }
+
+        .time-dot {
+            width: 11px; height: 11px; border-radius: 50%;
+            background: #000; border: 2px solid var(--text-secondary);
+            flex-shrink: 0; margin-top: 5px; z-index: 2;
+        }
+        .time-dot.gold { border-color: var(--accent-gold); background: var(--accent-gold); box-shadow: 0 0 10px rgba(212,175,55,0.4); }
+
+        .event-content { width: 100%; }
+        .event-content h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #fff; display: flex; justify-content: space-between; }
+        .event-time { font-size: 12px; color: var(--accent-gold); font-family: "SF Mono", monospace; font-weight: normal; }
+        
+        .event-detail { font-size: 14px; color: #ccc; line-height: 1.5; margin-bottom: 8px; }
+        
+        /* Tips Block inside Event */
+        .tips-block {
+            background: rgba(0,0,0,0.3); border-radius: 8px;
+            padding: 10px; margin-top: 8px; border-left: 2px solid var(--text-secondary);
+        }
+        .tips-row { display: flex; gap: 8px; font-size: 12px; color: #999; margin-bottom: 4px; align-items: flex-start; }
+        .tips-icon { flex-shrink: 0; }
+
+        /* Cost Tag */
+        .cost-tag {
+            display: inline-block; font-size: 11px; color: var(--accent-gold);
+            background: rgba(212, 175, 55, 0.1); padding: 2px 6px; border-radius: 4px;
+            margin-top: 4px; font-weight: 600;
+        }
+
+        /* 📷 Gear Guide (Expanded) */
+        .gear-guide {
+            background: #111; border-radius: 20px; padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1); margin-top: 10px; flex-shrink: 0;
+        }
+        .gear-head {
+            font-size: 12px; color: var(--text-secondary); text-transform: uppercase;
+            letter-spacing: 1px; margin-bottom: 12px; font-weight: 600;
+            display: flex; align-items: center; gap: 6px;
+        }
+        
+        .gear-list { display: flex; flex-direction: column; gap: 10px; }
+        .gear-item { display: flex; gap: 10px; align-items: center; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 10px; }
+        .gear-icon { font-size: 16px; }
+        .gear-text { font-size: 13px; color: #ddd; line-height: 1.3; }
+        .gear-text b { color: #fff; font-weight: 600; margin-right: 4px; }
+
+        /* Cover Page */
+        .cover-page { justify-content: center; text-align: center; }
+        .cover-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 40px; }
+        .stat-box { background: var(--bg-card); padding: 16px; border-radius: 16px; display: flex; flex-direction: column; gap: 4px; }
+        .stat-val { font-size: 22px; font-weight: 700; color: var(--accent-gold); }
+        .stat-key { font-size: 12px; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+    <div class="nav-arrow nav-prev" onclick="manualScroll(-1)">←</div>
+    <div class="nav-arrow nav-next" onclick="manualScroll(1)">→</div>
+
+    <div class="slider" id="slider">
+
+        <!-- Slide 0: Cover -->
+        <section class="slide cover-page active">
+            <div class="header-group anim-item">
+                <span class="day-label">2026 影像路书</span>
+                <h1 class="main-title" style="font-size:48px; margin-bottom:10px;">山西<br>古建巡礼</h1>
+                <p class="sub-title">Audi Q5L 三人自驾 · 8天7晚</p>
+            </div>
+
+            <div class="cover-stats anim-item delay-2">
+                <div class="stat-box">
+                    <span class="stat-val">¥2,800</span>
+                    <span class="stat-key">人均落地预算</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-val">¥8,500</span>
+                    <span class="stat-key">三人公费池</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-val">4 Cam</span>
+                    <span class="stat-key">ZV-E1 / A7M1 / Pocket3 / Kiss3</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-val">1,500km</span>
+                    <span class="stat-key">穿越太行吕梁</span>
+                </div>
+            </div>
+            
+            <div class="anim-item delay-3" style="margin-top:40px; opacity:0.5; font-size:12px;">
+                向左滑动查看详细日程 →
+            </div>
+        </section>
+
+        <!-- Slide 1: Day 1 -->
+        <section class="slide">
+            <div class="header-group anim-item">
+                <span class="day-label">DAY 01 · 1.17 SAT</span>
+                <h2 class="main-title">北上大同</h2>
+                <p class="sub-title">太原机场 ➔ 大同市区 (280km)</p>
+            </div>
+
+            <div class="timeline-box anim-item delay-1">
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>落地太原 · 提车 <span class="event-time">14:00</span></h4>
+                        <p class="event-detail">一嗨租车提 Audi Q5L。务必检查备胎和千斤顶。直接加 95# 汽油（约400元）。</p>
+                        <div class="tips-block">
+                            <div class="tips-row"><span class="tips-icon">🚗</span> 导航设为“大同市”，走二广高速 (G55)，路况极佳。</div>
+                        </div>
+                        <span class="cost-tag">路费均摊 ¥260</span>
+                    </div>
+                </div>
+                <div class="event-row">
+                    <div class="time-dot gold"></div>
+                    <div class="event-content">
+                        <h4>晚餐：肉食盛宴 <span class="event-time">19:00</span></h4>
+                        <p class="event-detail">首选<strong>【凯鸽火锅】</strong>（迎泽街店），大同排面。推荐：极品羔羊肉、大同黄糕、沙棘汁。</p>
+                        <div class="tips-block">
+                            <div class="tips-row"><span class="tips-icon">🏨</span> 宿：全季（大同古城店）或 云冈建国。停车方便。</div>
+                        </div>
+                        <span class="cost-tag">食宿 ¥220</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gear-guide anim-item delay-2">
+                <div class="gear-head">📸 影像战术</div>
+                <div class="gear-list">
+                    <div class="gear-item">
+                        <div class="gear-icon">📹</div>
+                        <div class="gear-text"><b>Pocket 3:</b> 夹在副驾遮阳板或手持，拍摄高速公路延时（Hyperlapse），记录进大同的初印象。</div>
+                    </div>
+                    <div class="gear-item">
+                        <div class="gear-icon">🎞️</div>
+                        <div class="gear-text"><b>Kiss 3:</b> 晚上火锅店的烟火气，开闪光灯直打，复古CCD既视感。</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 2: Day 2 -->
+        <section class="slide">
+            <div class="header-group anim-item">
+                <span class="day-label">DAY 02 · 1.18 SUN</span>
+                <h2 class="main-title">大佛与土林</h2>
+                <p class="sub-title">云冈石窟 ➔ 土林日落</p>
+            </div>
+
+            <div class="timeline-box anim-item delay-1">
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>云冈石窟 <span class="event-time">09:30</span></h4>
+                        <p class="event-detail">重点看第 5、6 窟（色彩惊艳）和第 20 窟（露天大佛）。冬天人少，可以慢慢逛。</p>
+                        <div class="tips-block">
+                            <div class="tips-row"><span class="tips-icon">🍜</span> 午餐：市区吃“东方削面”或“小媳妇凉粉”。</div>
+                        </div>
+                        <span class="cost-tag">门票 ¥100</span>
+                    </div>
+                </div>
+                <div class="event-row">
+                    <div class="time-dot gold"></div>
+                    <div class="event-content">
+                        <h4>大同土林日落 <span class="event-time">15:30</span></h4>
+                        <p class="event-detail">黄土高原魔幻地貌。日落（约17:20）前一小时光线呈现金红色，是出片的黄金窗口。</p>
+                        <div class="tips-block">
+                            <div class="tips-row"><span class="tips-icon">⚠️</span> 风极大，体感温度-15度，贴暖宝宝。</div>
+                            <div class="tips-row"><span class="tips-icon">🏨</span> 宿：浑源县恒山国际酒店（悬空寺脚下）。</div>
+                        </div>
+                        <span class="cost-tag">门票 ¥50</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gear-guide anim-item delay-2">
+                <div class="gear-head">📸 影像战术</div>
+                <div class="gear-list">
+                    <div class="gear-item">
+                        <div class="gear-icon">📷</div>
+                        <div class="gear-text"><b>A7M1 (主力):</b> 上三脚架，拍第20窟大佛的高像素特写，保留石刻质感。光圈 F8。</div>
+                    </div>
+                    <div class="gear-item">
+                        <div class="gear-icon">📹</div>
+                        <div class="gear-text"><b>Pocket 3:</b> 土林里低角度快速穿梭（FPV模式），模拟无人机视角。</div>
+                    </div>
+                    <div class="gear-item">
+                        <div class="gear-icon">🎞️</div>
+                        <div class="gear-text"><b>Kiss 3:</b> 土林逆光人像，稍微过曝一点，日系氛围拉满。</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 3: Day 3 -->
+        <section class="slide">
+            <div class="header-group anim-item">
+                <span class="day-label">DAY 03 · 1.19 MON</span>
+                <h2 class="main-title">雪山与唐构</h2>
+                <p class="sub-title">悬空 ➔ 木塔 ➔ 佛光寺</p>
+            </div>
+
+            <div class="timeline-box anim-item delay-1">
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>悬空寺 (晨光) <span class="event-time">07:30</span></h4>
+                        <p class="event-detail">早晨 8-9 点光线顺光照在寺庙上。只买 15 元大门票，不登临（省时间且排队冷）。在石碑处拍全景。</p>
+                    </div>
+                </div>
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>应县木塔 (深度) <span class="event-time">09:30</span></h4>
+                        <p class="event-detail">买票进院，绕塔三周。看塔刹上的麻燕盘旋。这里不需要讲解，静静感受千年木构的压迫感。</p>
+                        <span class="cost-tag">门票 ¥50</span>
+                    </div>
+                </div>
+                <div class="event-row">
+                    <div class="time-dot gold"></div>
+                    <div class="event-content">
+                        <h4>穿越五台 & 佛光寺 <span class="event-time">13:00</span></h4>
+                        <p class="event-detail">走 G336 国道穿越五台山北麓，看雪山。直达佛光寺看东大殿唐代斗拱。</p>
+                        <div class="tips-block">
+                            <div class="tips-row"><span class="tips-icon">🚗</span> 若遇大雪封路，改走高速绕行，放弃雪山景。</div>
+                            <div class="tips-row"><span class="tips-icon">🏨</span> 宿：太原南站附近（维也纳/亚朵）。</div>
+                        </div>
+                        <span class="cost-tag">食宿 ¥200</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gear-guide anim-item delay-2">
+                <div class="gear-head">📸 影像战术</div>
+                <div class="gear-list">
+                    <div class="gear-item">
+                        <div class="gear-icon">📹</div>
+                        <div class="gear-text"><b>ZV-E1 (首秀):</b> 佛光寺东大殿内极暗。开启 S-Log3，ISO 3200+，拍大殿内的光影。</div>
+                    </div>
+                    <div class="gear-item">
+                        <div class="gear-icon">📷</div>
+                        <div class="gear-text"><b>A7M1:</b> 木塔细节，使用长焦端压缩透视，拍塔檐上的风铃和鸟。</div>
+                    </div>
+                    <div class="gear-item">
+                        <div class="gear-icon">🎞️</div>
+                        <div class="gear-text"><b>Kiss 3:</b> 木塔红墙下的人像，色彩非常正。</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 4: Day 4 -->
+        <section class="slide">
+            <div class="header-group anim-item">
+                <span class="day-label">DAY 04 · 1.20 TUE</span>
+                <h2 class="main-title">满堂悬塑</h2>
+                <p class="sub-title">双林寺 ➔ 小西天 (核心)</p>
+            </div>
+
+            <div class="timeline-box anim-item delay-1">
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>平遥双林寺 <span class="event-time">09:00</span></h4>
+                        <p class="event-detail">就在高速口。看“天下第一韦驮”和十八罗汉。彩塑面部表情极其生动。</p>
+                        <span class="cost-tag">门票 ¥35</span>
+                    </div>
+                </div>
+                <div class="event-row">
+                    <div class="time-dot gold"></div>
+                    <div class="event-content">
+                        <h4>隰县小西天 <span class="event-time">14:30</span></h4>
+                        <p class="event-detail">下午光线射入大雄宝殿，金碧辉煌。<strong>务必请讲解！</strong>（约50元）。大殿空间非常狭窄，注意别碰坏文物。</p>
+                        <div class="tips-block">
+                            <div class="tips-row"><span class="tips-icon">🚗</span> 去隰县隧道多限速80，严防超速。</div>
+                            <div class="tips-row"><span class="tips-icon">🏨</span> 宿：临汾市区（金都花园）。晚餐牛肉丸子面。</div>
+                        </div>
+                        <span class="cost-tag">门票 ¥35</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gear-guide anim-item delay-2">
+                <div class="gear-head">📸 影像战术</div>
+                <div class="gear-list">
+                    <div class="gear-item">
+                        <div class="gear-icon">📹</div>
+                        <div class="gear-text"><b>ZV-E1 (绝对主力):</b> 小西天禁止闪光灯。光圈全开 F1.8，利用高感优势。慢动作运镜扫过悬塑细节。</div>
+                    </div>
+                    <div class="gear-item">
+                        <div class="gear-icon">🚫</div>
+                        <div class="gear-text"><b>Kiss 3 & A7M1:</b> 室内太暗且拥挤，建议收起来，专心用视频机。</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 5: Day 5 -->
+        <section class="slide">
+            <div class="header-group anim-item">
+                <span class="day-label">DAY 05 · 1.21 WED</span>
+                <h2 class="main-title">琉璃与青莲</h2>
+                <p class="sub-title">广胜寺 ➔ 晋城</p>
+            </div>
+
+            <div class="timeline-box anim-item delay-1">
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>广胜寺飞虹塔 <span class="event-time">10:00</span></h4>
+                        <p class="event-detail">《西游记》扫塔处。世界最美琉璃塔。必须坐景区摆渡车上山。</p>
+                        <span class="cost-tag">门票+车 ¥75</span>
+                    </div>
+                </div>
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>青莲寺 <span class="event-time">15:30</span></h4>
+                        <p class="event-detail">抵达晋城。古银杏树、远眺太行山、宋代彩塑。这里游客极少，非常清幽。</p>
+                    </div>
+                </div>
+                <div class="event-row">
+                    <div class="time-dot gold"></div>
+                    <div class="event-content">
+                        <h4>晚餐：晋城烧烤 <span class="event-time">19:00</span></h4>
+                        <p class="event-detail">特色大肉串、把子肉。不要去网红店，找巷子里的老店。</p>
+                        <div class="tips-block">
+                            <div class="tips-row"><span class="tips-icon">🏨</span> 宿：晋城国贸或金辇大酒店（性价比高）。</div>
+                        </div>
+                        <span class="cost-tag">食宿 ¥300</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gear-guide anim-item delay-2">
+                <div class="gear-head">📸 影像战术</div>
+                <div class="gear-list">
+                    <div class="gear-item">
+                        <div class="gear-icon">🎞️</div>
+                        <div class="gear-text"><b>Kiss 3 (主力):</b> 飞虹塔的琉璃色彩非常鲜艳，胶片模式直出色彩无敌。</div>
+                    </div>
+                    <div class="gear-item">
+                        <div class="gear-icon">📷</div>
+                        <div class="gear-text"><b>A7M1:</b> 青莲寺古树光影，广角拍摄古寺与远山的结合。</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 6: Day 6 -->
+        <section class="slide">
+            <div class="header-group anim-item">
+                <span class="day-label">DAY 06 · 1.22 THU</span>
+                <h2 class="main-title">星宿 · 返程</h2>
+                <p class="sub-title">玉皇庙 ➔ 提前回太原</p>
+            </div>
+
+            <div class="timeline-box anim-item delay-1">
+                <div class="event-row">
+                    <div class="time-dot gold"></div>
+                    <div class="event-content">
+                        <h4>玉皇庙 <span class="event-time">09:30</span></h4>
+                        <p class="event-detail">黑神话核心打卡：二十八星宿（亢金龙、虚日鼠）。需提前公众号预约。位于山顶，很冷。</p>
+                        <span class="cost-tag">门票 ¥0</span>
+                    </div>
+                </div>
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>返程太原 <span class="event-time">13:00</span></h4>
+                        <p class="event-detail">走二广高速（G55）穿行太行山脉，桥隧相连，风景壮阔。约 4 小时车程。</p>
+                        <div class="tips-block">
+                            <div class="tips-row"><span class="tips-icon">🏙️</span> 晚上住太原柳巷/钟楼街，开启 Citywalk 模式。</div>
+                        </div>
+                        <span class="cost-tag">食宿 ¥260</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gear-guide anim-item delay-2">
+                <div class="gear-head">📸 影像战术</div>
+                <div class="gear-list">
+                    <div class="gear-item">
+                        <div class="gear-icon">📹</div>
+                        <div class="gear-text"><b>ZV-E1:</b> 二十八星宿造型极其夸张妖娆，拍摄局部的面部表情特写。</div>
+                    </div>
+                    <div class="gear-item">
+                        <div class="gear-icon">📹</div>
+                        <div class="gear-text"><b>Pocket 3:</b> 二广高速回程时，开启车内 Vlog 模式，记录三人自驾聊天。</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 7: Day 7 -->
+        <section class="slide">
+            <div class="header-group anim-item">
+                <span class="day-label">DAY 07 · 1.23 FRI</span>
+                <h2 class="main-title">晋祠散伙</h2>
+                <p class="sub-title">晋祠园林 ➔ 老太原菜馆</p>
+            </div>
+
+            <div class="timeline-box anim-item delay-1">
+                <div class="event-row">
+                    <div class="time-dot gold"></div>
+                    <div class="event-content">
+                        <h4>晋祠园林 <span class="event-time">10:30</span></h4>
+                        <p class="event-detail">不看博物馆看园林。难老泉、圣母殿、3000年周柏。北方少有的江南园林感。</p>
+                        <span class="cost-tag">门票 ¥80</span>
+                    </div>
+                </div>
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>散伙饭 <span class="event-time">19:00</span></h4>
+                        <p class="event-detail">推荐<strong>【老太原菜馆】</strong>。必点：过油肉（正宗山西味）、糖醋丸子、黄米凉糕。</p>
+                        <span class="cost-tag">大餐 ¥150</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gear-guide anim-item delay-2">
+                <div class="gear-head">📸 影像战术</div>
+                <div class="gear-list">
+                    <div class="gear-item">
+                        <div class="gear-icon">🎞️</div>
+                        <div class="gear-text"><b>Kiss 3:</b> 晋祠的古树光影斑驳，非常适合用胶片机拍人像。</div>
+                    </div>
+                    <div class="gear-item">
+                        <div class="gear-icon">📹</div>
+                        <div class="gear-text"><b>Pocket 3:</b> 园林游走，使用智能跟随模式自拍 Vlog 总结感言。</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 8: Day 8 -->
+        <section class="slide">
+            <div class="header-group anim-item">
+                <span class="day-label">DAY 08 · 1.24 SAT</span>
+                <h2 class="main-title">悠闲返程</h2>
+                <p class="sub-title">特产 ➔ 机场</p>
+            </div>
+
+            <div class="timeline-box anim-item delay-1">
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>咖啡 & 整理 <span class="event-time">12:00</span></h4>
+                        <p class="event-detail">睡个懒觉。找家咖啡馆把这几天的素材导出来。买点太谷饼、宁化府陈醋带回家。</p>
+                        <span class="cost-tag">杂费 ¥100</span>
+                    </div>
+                </div>
+                <div class="event-row">
+                    <div class="time-dot"></div>
+                    <div class="event-content">
+                        <h4>机场还车 <span class="event-time">16:30</span></h4>
+                        <p class="event-detail">太原武宿机场一嗨租车点。<strong>务必保留最后一次加油小票。</strong> 19:00 起飞。</p>
+                        <span class="cost-tag">加油 ¥120</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gear-guide anim-item delay-2" style="text-align:center;">
+                <p style="color:#888; font-size:14px;">👋 旅途结束，期待成片！</p>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const slider = document.getElementById('slider');
+        const slides = document.querySelectorAll('.slide');
+        const progressFill = document.getElementById('progress');
+        let isAnimating = false;
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    const index = Array.from(slides).indexOf(entry.target);
+                    const progress = ((index + 1) / slides.length) * 100;
+                    progressFill.style.width = `${progress}%`;
+                }
+            });
+        }, { root: slider, threshold: 0.5 });
+
+        slides.forEach(slide => observer.observe(slide));
+
+        // PC Logic
+        slider.addEventListener('wheel', (e) => {
+            if (isAnimating) return;
+            const slideWidth = window.innerWidth;
+            const currentIndex = Math.round(slider.scrollLeft / slideWidth);
+            const currentSlide = slides[currentIndex];
+            if (!currentSlide) return;
+
+            const isScrollable = currentSlide.scrollHeight > currentSlide.clientHeight;
+            const isAtTop = currentSlide.scrollTop <= 0;
+            const isAtBottom = Math.ceil(currentSlide.scrollTop + currentSlide.clientHeight) >= currentSlide.scrollHeight;
+
+            if (e.deltaY > 0) {
+                if (!isScrollable || isAtBottom) {
+                    if (currentIndex < slides.length - 1) {
+                        e.preventDefault(); isAnimating = true;
+                        slider.scrollTo({ left: (currentIndex + 1) * slideWidth, behavior: 'smooth' });
+                        setTimeout(() => isAnimating = false, 600);
+                    }
+                }
+            } else {
+                if (!isScrollable || isAtTop) {
+                    if (currentIndex > 0) {
+                        e.preventDefault(); isAnimating = true;
+                        slider.scrollTo({ left: (currentIndex - 1) * slideWidth, behavior: 'smooth' });
+                        setTimeout(() => isAnimating = false, 600);
+                    }
+                }
+            }
+        }, { passive: false });
+
+        function manualScroll(direction) {
+            const slideWidth = window.innerWidth;
+            const currentIndex = Math.round(slider.scrollLeft / slideWidth);
+            const targetIndex = currentIndex + direction;
+            if (targetIndex >= 0 && targetIndex < slides.length) {
+                slider.scrollTo({ left: targetIndex * slideWidth, behavior: 'smooth' });
+            }
+        }
+    </script>
+</body>
+</html>
