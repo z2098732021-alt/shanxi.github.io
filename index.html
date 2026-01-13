@@ -785,11 +785,13 @@
             
             // 2. 在这里填入 API 地址 (Base URL)
             // 如果是小米 MiMo 开放平台，请使用官方提供的兼容 OpenAI 格式的 endpoint
-            // 示例占位符 (请替换为真实地址): "https://api.xiaomimimo.com/v1/chat/completions"
             apiUrl: "https://api.xiaomimimo.com/v1/chat/completions", 
             
             // 3. 模型名称
-            modelName: "mimo-v2-flash"
+            modelName: "mimo-v2-flash",
+
+            // 4. CORS 代理 (仅用于 GitHub Pages 测试，生产环境建议移除)
+            corsProxy: "https://cors-anywhere.com/"
         };
 
         // 3. AI 助手人设 (System Prompt)
@@ -899,8 +901,11 @@
                 thinking: { type: "disabled" } // Xiaomi MiMo specific param
             };
 
+            // 使用代理后的 URL
+            const finalUrl = API_CONFIG.corsProxy ? (API_CONFIG.corsProxy + API_CONFIG.apiUrl) : API_CONFIG.apiUrl;
+
             try {
-                const response = await fetch(API_CONFIG.apiUrl, {
+                const response = await fetch(finalUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -910,6 +915,11 @@
                 });
 
                 if (!response.ok) {
+                    if (response.status === 403 && API_CONFIG.corsProxy) {
+                         // 一般来说 cors-anywhere.com 不需要点击按钮激活，但如果未来策略变更，可以保留提示
+                         // 或者直接返回更通用的 CORS 错误
+                         return "❌ **CORS 代理请求被拒绝**：\n请检查代理服务状态或尝试本地 Live Server 运行。";
+                    }
                     const errText = await response.text();
                     console.error("API Error:", errText);
                     return `API 请求失败 (${response.status})。请检查 Key 或 URL 是否正确。`;
@@ -929,7 +939,8 @@
             } catch (error) {
                 console.error("Network Error:", error);
                 if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-                    return "❌ **网络请求失败 (CORS)**：\n1. 请确保您的 API 地址 (URL) 正确。\n2. 如果您是直接双击打开 HTML 文件，浏览器会拦截跨域请求。请尝试使用 VS Code 的 'Live Server' 插件运行，或检查 API 提供商是否支持浏览器直连。";
+                    // 更新错误提示，移除 heroku 相关链接，改为通用建议
+                    return "❌ **网络请求失败 (CORS)**：\n由于浏览器的安全限制，直接运行 HTML 文件无法连接 API。\n\n**解决方法：**\n1. 请使用 VS Code 的 **Live Server** 插件运行此文件。\n2. 或者将代码部署到支持后端代理的环境。";
                 }
                 return `网络连接失败: ${error.message}`;
             }
