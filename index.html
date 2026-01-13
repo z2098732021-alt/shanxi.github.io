@@ -790,8 +790,9 @@
             // 3. 模型名称
             modelName: "mimo-v2-flash",
 
-            // 4. CORS 代理 (仅用于 GitHub Pages 测试，生产环境建议移除)
-            corsProxy: "https://cors-anywhere.com/"
+            // 4. CORS 代理 (已更换为更稳定的 corsproxy.io)
+            // 原理：通过第三方服务器中转请求，绕过浏览器的同源策略限制
+            corsProxy: "https://corsproxy.io/?"
         };
 
         // 3. AI 助手人设 (System Prompt)
@@ -902,7 +903,8 @@
             };
 
             // 使用代理后的 URL
-            const finalUrl = API_CONFIG.corsProxy ? (API_CONFIG.corsProxy + API_CONFIG.apiUrl) : API_CONFIG.apiUrl;
+            // 注意：corsproxy.io 的用法是 https://corsproxy.io/?<目标URL>
+            const finalUrl = API_CONFIG.corsProxy ? (API_CONFIG.corsProxy + encodeURIComponent(API_CONFIG.apiUrl)) : API_CONFIG.apiUrl;
 
             try {
                 const response = await fetch(finalUrl, {
@@ -915,10 +917,8 @@
                 });
 
                 if (!response.ok) {
-                    if (response.status === 403 && API_CONFIG.corsProxy) {
-                         // 一般来说 cors-anywhere.com 不需要点击按钮激活，但如果未来策略变更，可以保留提示
-                         // 或者直接返回更通用的 CORS 错误
-                         return "❌ **CORS 代理请求被拒绝**：\n请检查代理服务状态或尝试本地 Live Server 运行。";
+                    if (response.status === 403 || response.status === 429) {
+                         return "❌ **CORS 代理繁忙**：\n公共代理服务（corsproxy.io）可能限制了请求频率。\n建议：\n1. 等待几秒后重试。\n2. 或者在本地使用 VS Code Live Server 运行（最稳定）。";
                     }
                     const errText = await response.text();
                     console.error("API Error:", errText);
@@ -939,8 +939,8 @@
             } catch (error) {
                 console.error("Network Error:", error);
                 if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-                    // 更新错误提示，移除 heroku 相关链接，改为通用建议
-                    return "❌ **网络请求失败 (CORS)**：\n由于浏览器的安全限制，直接运行 HTML 文件无法连接 API。\n\n**解决方法：**\n1. 请使用 VS Code 的 **Live Server** 插件运行此文件。\n2. 或者将代码部署到支持后端代理的环境。";
+                    // 更新错误提示
+                    return "❌ **网络请求失败 (CORS)**：\n这是由于 GitHub Pages 等静态网页的浏览器安全限制导致的。\n\n**当前状态：**\n已尝试使用 `corsproxy.io` 代理，但连接仍被阻断。\n\n**终极解决方法：**\n请在本地使用 VS Code 的 **Live Server** 插件运行此 HTML 文件，本地环境通常能绕过此限制。";
                 }
                 return `网络连接失败: ${error.message}`;
             }
